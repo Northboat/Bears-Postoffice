@@ -88,10 +88,9 @@ public Postman(Session session, Mail mail) throws MessagingException {
 ~~~java
 package com.postoffice.service;
 
-import com.postoffice.vo.Mail;
+import com.postoffice.pojo.Mail;
 
 import javax.mail.MessagingException;
-import javax.mail.Service;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
@@ -99,8 +98,7 @@ import javax.mail.internet.MimeMessage;
 import java.util.concurrent.TimeUnit;
 
 
-
-public class Postman extends Thread{
+public class Postman extends Thread {
 
     //邮件信息
     private String from;
@@ -109,11 +107,11 @@ public class Postman extends Thread{
     //使线程停止
     private boolean stop;
 
-    public Mail getMail(){
+    public Mail getMail() {
         return mail;
     }
 
-    public Postman(){
+    public Postman() {
         stop = false;
         from = "northboat@qq.com";
     }
@@ -132,7 +130,7 @@ public class Postman extends Thread{
     }
 
 
-    public boolean isStopped(){
+    public boolean isStopped() {
         return stop;
     }
 
@@ -150,10 +148,10 @@ public class Postman extends Thread{
 
     @Override
     public void run() {
-        do{
+        do {
             try {
                 //say hello
-                if(mail.getCount() == 0){
+                if (mail.getCount() == 0) {
                     message.setSubject("Hello");
                     message.setText("这是由" + mail.getName() + "为您订阅的邮件，将会每周定时为你发送");
                     Transport.send(message);
@@ -166,20 +164,20 @@ public class Postman extends Thread{
 
                 Transport.send(message);
 
-                System.out.println(mail.getName() + "给" + mail.getTo() + "的第" + (mail.getCount()+1) + "封邮件发送成功");
-                mail.setCount(mail.getCount()+1);
+                System.out.println(mail.getName() + "给" + mail.getTo() + "的第" + (mail.getCount() + 1) + "封邮件发送成功");
+                mail.setCount(mail.getCount() + 1);
 
                 TimeUnit.DAYS.sleep(7);
-            } catch (Exception e){
+            } catch (Exception e) {
                 System.out.println("线程异常，已中断");
                 e.printStackTrace();
                 stop = true;
-                if(PostOffice.has(mail.getNum())){
-                    PostOffice.remove(mail.getNum());
+                if (Postoffice.has(mail.getNum())) {
+                    Postoffice.remove(mail.getNum());
                 }
                 break;
             }
-        } while(!stop);
+        } while (!stop);
 
         //say goodbye
         try {
@@ -192,7 +190,7 @@ public class Postman extends Thread{
         System.out.println("bye, i am gone");
     }
 
-    public void shutdown(){
+    public void shutdown() {
         stop = true;
     }
 }
@@ -336,13 +334,9 @@ public static Postman getPostman(int num){
 ~~~java
 package com.postoffice.service;
 
-import com.postoffice.mapper.MailMapper;
-import com.postoffice.vo.Mail;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
+import com.postoffice.utils.Postman;
+import com.postoffice.pojo.Mail;
 
-import javax.annotation.PostConstruct;
 import javax.mail.*;
 import java.util.*;
 
@@ -358,7 +352,7 @@ public class PostOffice {
     private static Map<Integer, Postman> office;
 
 
-    static{
+    static {
         office = new HashMap<>();
 
         Properties properties = new Properties();
@@ -389,9 +383,9 @@ public class PostOffice {
         });
     }
 
-    public static void flush(List<Mail> mails){
-        for(Mail mail: mails){
-            if(!PostOffice.has(mail.getNum())){
+    public static void flush(List<Mail> mails) {
+        for (Mail mail : mails) {
+            if (!PostOffice.has(mail.getNum())) {
                 //System.out.println("进来了");
                 Postman postman = new Postman();
                 try {
@@ -407,11 +401,11 @@ public class PostOffice {
 
     }
 
-    public static void beginWork(){
-        for(Postman postman: office.values()){
+    public static void beginWork() {
+        for (Postman postman : office.values()) {
             postman.start();
         }
-        num = office.size()-1;
+        num = office.size() - 1;
     }
 
     public static Mail send(Mail mail) {
@@ -421,7 +415,7 @@ public class PostOffice {
             //在ready函数中设置from
             Postman postman = new Postman(session, mail);
             postman.start();
-            if(postman.isStopped()){
+            if (postman.isStopped()) {
                 return null;
             }
             office.put(num, postman);
@@ -431,21 +425,21 @@ public class PostOffice {
         return mail;
     }
 
-    public static boolean has(int num){
+    public static boolean has(int num) {
         return office.getOrDefault(num, null) != null;
     }
 
-    public static void remove(int num){
+    public static void remove(int num) {
         office.get(num).shutdown();
         //office.get(num).destroy();
         office.remove(num);
     }
 
-    public static Collection<Postman> getPostmen(){
+    public static Collection<Postman> getPostmen() {
         return office.values();
     }
 
-    public static Postman getPostman(int num){
+    public static Postman getPostman(int num) {
         return office.get(num);
     }
 }
@@ -537,7 +531,7 @@ application.yml
 ~~~yml
 #整合mybatis
 mybatis:
-  type-aliases-package: com.postoffice.vo
+  type-aliases-package: com.postoffice.pojo
   mapper-locations: classpath:mybatis/mapper/*.xml
 ~~~
 
@@ -547,7 +541,7 @@ MailMapper.java，放置在com.postoffice.mapper目录下
 package com.postoffice.mapper;
 
 
-import com.postoffice.vo.Mail;
+import com.postoffice.pojo.Mail;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Repository;
 
@@ -861,15 +855,14 @@ package com.postoffice.controller;
 
 
 import com.postoffice.mapper.MailMapper;
-import com.postoffice.service.PostOffice;
-import com.postoffice.vo.Mail;
+import com.postoffice.service.Postoffice;
+import com.postoffice.pojo.Mail;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpSession;
 import java.util.HashMap;
@@ -882,29 +875,30 @@ public class MailController {
     private boolean firstStart = true;
 
     private MailMapper mailMapper;
+
     @Autowired
-    public void setMailMapper(MailMapper mailMapper){
+    public void setMailMapper(MailMapper mailMapper) {
         this.mailMapper = mailMapper;
     }
 
     @RequestMapping("/login")
     public String login(@RequestParam("username") String username,
-                       @RequestParam("password") String password,
-                       Model model, HttpSession session){
-        if(username.equals("") || password.equals("")){
+                        @RequestParam("password") String password,
+                        Model model, HttpSession session) {
+        if (username.equals("") || password.equals("")) {
             model.addAttribute("msg", "用户名或密码不能为空");
             return "index";
         }
-        if(!password.equals("123456")){
+        if (!password.equals("123456")) {
             model.addAttribute("msg", "密码错误");
         }
         session.setAttribute("loginUser", username);
         List<Mail> mails = mailMapper.queryMailList();
-        PostOffice.flush(mails);
+        Postoffice.flush(mails);
         //每次登录更新一遍每封邮件发送的次数
-        for(Mail mail: mails){
-            int count = PostOffice.getPostman(mail.getNum()).getMail().getCount();
-            if(mail.getCount() != count){
+        for (Mail mail : mails) {
+            int count = Postoffice.getPostman(mail.getNum()).getMail().getCount();
+            if (mail.getCount() != count) {
                 System.out.println("开始修改当前邮件发送次数");
                 Map<String, Integer> map = new HashMap<>();
                 map.put("num", mail.getNum());
@@ -913,11 +907,11 @@ public class MailController {
             }
         }
         //首次启动，开始发送所有邮件，启动所有线程
-        if(firstStart){
-            PostOffice.beginWork();
+        if (firstStart) {
+            Postoffice.beginWork();
             firstStart = false;
         }
-        model.addAttribute("postmen", PostOffice.getPostmen());
+        model.addAttribute("postmen", Postoffice.getPostmen());
 //        for(Postman p: PostOffice.getPostmen()){
 //            System.out.println(p.getMail().getNum() + p.getMail().getName());
 //        }
@@ -925,33 +919,33 @@ public class MailController {
     }
 
     @RequestMapping("/logout")
-    public String logout(HttpSession session){
+    public String logout(HttpSession session) {
         session.removeAttribute("loginUser");
         return "index";
     }
 
     @RequestMapping("/send")
-    public String send(@RequestParam("name")String name,
-                       @RequestParam("to")String to,
-                       @RequestParam("subject")String subject,
-                       @RequestParam("text")String text){
+    public String send(@RequestParam("name") String name,
+                       @RequestParam("to") String to,
+                       @RequestParam("subject") String subject,
+                       @RequestParam("text") String text) {
         Mail mail = new Mail(name, to, subject, text);
-        Mail m = PostOffice.send(mail);
+        Mail m = Postoffice.send(mail);
         //System.out.println(m.getNum() + m.getFrom());
         mailMapper.addMail(m);
         return "redirect:/main";
     }
 
     @RequestMapping("/main")
-    public String main(Model model){
-        PostOffice.flush(mailMapper.queryMailList());
-        model.addAttribute("postmen", PostOffice.getPostmen());
+    public String main(Model model) {
+        Postoffice.flush(mailMapper.queryMailList());
+        model.addAttribute("postmen", Postoffice.getPostmen());
         return "main";
     }
 
     @RequestMapping("/drop/{num}")
-    public String drop(@PathVariable("num")Integer num){
-        PostOffice.remove(num);
+    public String drop(@PathVariable("num") Integer num) {
+        Postoffice.remove(num);
         mailMapper.removeMail(num);
         return "redirect:/main";
     }
